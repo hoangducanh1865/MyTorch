@@ -38,6 +38,27 @@ class Array:
                     tgt_device, tgt_device_idx = "cuda", data.device.id
             else:
                 tgt_device, tgt_device_idx = "cpu", None
+        if dtype is None:
+            if hasattr(data, "dtype"):
+                current_dtype = str(data.dtype)
+                if current_dtype == "float64":
+                    dtype = "float32"
+                elif current_dtype == "int64":
+                    dtype = "int32"
+                else:
+                    dtype = current_dtype
+        else:
+            if not isinstance(dtype, str):
+                dtype = str(dtype)
+        if isinstance(data, Array):
+            self._array = data
+        else:
+            self._array = np.array(data)
+        src_device = (
+            "cpu"
+            if isinstance(self._array, np.ndarray)
+            else f"cuda:{self._array.device.id}"
+        )
 
     def __parse_cude_str(self, device_str):
         tgt_device = "cuda"
