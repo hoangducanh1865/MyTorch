@@ -50,7 +50,7 @@ class Array:
         else:
             if not isinstance(dtype, str):
                 dtype = str(dtype)
-        if isinstance(data, Array):
+        if isinstance(data, (np.ndarray, cp.ndarray)):
             self._array = data
         else:
             self._array = np.array(data)
@@ -66,12 +66,44 @@ class Array:
             tgt_dev_idx=tgt_device_idx,
         )
         current_dtype = str(self._array.dtype)
-        if current_dtype != dtype:
+        if current_dtype != dtype:  # @QUESTION: what is dtype is None?
             if "cuda" in tgt_device and CUDA_AVAILABLE:
                 with cp.cuda.Device(tgt_device_idx):
                     self._array = self._array.astype(dtype)
             else:
                 self._array = self._array.astype(dtype)
+        self._xp = np if isinstance(self._array, np.ndarray) else cp
+        self._device_id = None if self._xp is np else self._array.device.id
+        self._device = "cpu" if self._xp is np else f"cuda:{self._device_id}"
+
+    @property
+    def xp(self):
+        print(self._xp)
+        return self._xp
+
+    @property
+    def device(self):
+        return self._device
+
+    @property
+    def dtype(self):
+        return self._array.dtype
+
+    @property
+    def shape(self):
+        return self._array.shape
+
+    @property
+    def ndim(self):
+        return self._array.ndim
+
+    @property
+    def size(self):
+        return self._array.size
+
+    @property
+    def T(self):
+        return Array(self._array.T, device=self._device)
 
     def __parse_cude_str(self, device_str):
         tgt_device = "cuda"
@@ -95,3 +127,4 @@ class Array:
                 return cp.asarray(arr)
         else:
             return cp.asnumpy(arr)
+
