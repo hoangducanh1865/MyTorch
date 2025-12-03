@@ -54,13 +54,37 @@ class Array:
             self._array = data
         else:
             self._array = np.array(data)
-        src_device = (
+        data_device = (
             "cpu"
             if isinstance(self._array, np.ndarray)
             else f"cuda:{self._array.device.id}"
+        )  # Here data_device is like data.device, e.g: "cuda:0"
+        self._array = self.__move_array(
+            arr=self._array,
+            data_dev=data_device,
+            tgt_dev=tgt_device,
+            tgt_dev_idx=tgt_device_idx,
         )
 
     def __parse_cude_str(self, device_str):
         tgt_device = "cuda"
         tgt_device_idx = int(device_str.split(":")[-1]) if ":" in device_str else 0
         return tgt_device, tgt_device_idx
+
+    def __move_array(self, arr, data_dev, tgt_dev, tgt_dev_idx=None):
+        src_dev = data_dev if data_dev == "cpu" else "cuda"
+        src_idx = None if data_dev == "cpu" else int(data_dev.split(":")[-1])
+        tgt_idx = (
+            tgt_dev_idx if tgt_dev == "cuda" else None
+        )  # @QUESTION: Why do we need to have this line? Why don't we just assign tgt_idx = tgt_dev_idx?
+        if src_dev == tgt_dev and src_idx == tgt_idx:
+            return arr
+        if tgt_dev == "cuda":
+            if not CUDA_AVAILABLE:
+                raise RecursionError("CUDA is not available")
+            if tgt_dev_idx is None:
+                tgt_dev_idx = 0
+            with cp.cuda.Device(tgt_dev_idx):
+                return cp.asarray(arr)
+        else:
+            return cp.asnumpy(arr)
