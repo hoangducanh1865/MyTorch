@@ -65,6 +65,13 @@ class Array:
             tgt_dev=tgt_device,
             tgt_dev_idx=tgt_device_idx,
         )
+        current_dtype = str(self._array.dtype)
+        if current_dtype != dtype:
+            if "cuda" in tgt_device and CUDA_AVAILABLE:
+                with cp.cuda.Device(tgt_device_idx):
+                    self._array = self._array.astype(dtype)
+            else:
+                self._array = self._array.astype(dtype)
 
     def __parse_cude_str(self, device_str):
         tgt_device = "cuda"
